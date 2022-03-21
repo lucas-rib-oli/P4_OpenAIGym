@@ -1,0 +1,29 @@
+import gym
+from gym import error, spaces, utils
+from gym.utils import seeding
+from numpy import genfromtxt
+
+LEFT = 0
+DOWN = 1
+RIGHT = 2
+UP = 3
+
+class CsvEnv(gym.Env):
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self):
+        print('CsvEnv.__init__')
+        self.inFile = genfromtxt('map1.csv', delimiter=',')
+
+    def step(self, action):
+        print('CsvEnv.step', action)
+
+    def reset(self):
+        print('CsvEnv.reset')
+
+    def render(self, mode='human'):
+        print('CsvEnv.render', mode)
+        print self.inFile
+    
+    def close(self):
+        print('CsvEnv.close')
