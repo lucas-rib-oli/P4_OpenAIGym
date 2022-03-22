@@ -80,20 +80,25 @@ class CsvEnv(discrete.DiscreteEnv):
                 row = max(row-1,0)
             return (row, col)
 
+        def euclidean_distance (x1, y1, x2, y2):
+            return np.sqrt ( np.power ( (x2 - x1), 2 ) + np.power ( (y2 - y1), 2 ) )
+        
         for row in range(nrow): # Fill in P[s][a] transitions and rewards
             for col in range(ncol):
                 s = to_s(row, col)
                 for a in range(4):
                     li = P[s][a] # In Python this is not a deep copy, therefore we are appending to actual P[s][a] !!
                     tag = self.inFile[row][col]
+                    
+                    euclidean_cost = euclidean_distance ( row, col, goalX, goalY )
                     if tag == 3: # goal
                         li.append((1.0, s, 1.0, True)) # (probability, nextstate, reward, done)
                     elif tag == 1: # wall
-                        li.append((1.0, s, -500.0, True)) # (probability, nextstate, reward, done) # Some algorithms fail with reward -float('inf')
+                        li.append((1.0, s, -500.0 - euclidean_cost, True)) # (probability, nextstate, reward, done) # Some algorithms fail with reward -float('inf')
                     else: # e.g. tag == 0
                         newrow, newcol = inc(row, col, a)
                         newstate = to_s(newrow, newcol)
-                        li.append((1.0, newstate, 0.0, False)) # (probability, nextstate, reward, done)
+                        li.append((1.0, newstate, -euclidean_cost, False)) # (probability, nextstate, reward, done)
 
         super(CsvEnv, self).__init__(nS, nA, P, isd)
 
