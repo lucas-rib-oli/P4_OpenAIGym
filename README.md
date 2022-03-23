@@ -10,4 +10,6 @@ Tercer entregable para la asignatura de Simuladores de Robots del Máster de Rob
 - Se puede escoger entre dos algoritmos implementados, el primer algoritmo es Q-Learning y el segundo es Value Iteration Algorithm.
 - Se ha añadido la lectura por consola para introducir las coordenadas de inicio y meta.
 - Se han creado otros mapas adicionales que se escogen por entrada en consola. 
-- Se ha añadido el movimiento en diagonal, no solo lateralmente. 
+- Se ha añadido el movimiento en diagonal, no solo lateralmente.
+- Se puede pasar por argumentos el número de episodios para los algoritmos.
+- Se ha subido demostrativo a [YouTube](https://youtu.be/_EgTOtM6OyY).

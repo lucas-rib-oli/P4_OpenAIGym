@@ -53,10 +53,8 @@ class CsvEnv(discrete.DiscreteEnv):
 
     def __init__(self):
         # Remember: X points down, Y points right, thus Z points outwards.
-        # hard-coded vars (begin)
 
         map_number = -1 # Inicializacion
-
         while ( True ):
             map_number = input ("Elige un mapa de 1 a 4\n")
             if ( int(map_number) > 0 and int(map_number) < 4 ):
@@ -66,7 +64,6 @@ class CsvEnv(discrete.DiscreteEnv):
         initY = 1
         goalX = 12
         goalY = 14
-        # hard-coded vars (end)
         self.inFile = np.genfromtxt(inFileStr, delimiter=',')
 
         # Bucles para elegir la coordenada de inicio y final

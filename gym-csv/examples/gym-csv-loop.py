@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import gym
+from paramiko import Agent
 import gym_csv
 
 import numpy as np 
@@ -9,9 +10,6 @@ import time
 import sys, tty, termios
 import argparse
 
-# https://www.kaggle.com/code/charel/learn-by-example-reinforcement-learning-with-gym/notebook
-# https://programmerclick.com/article/1942403954/
-
 def str_to_bool(value):
     if value.lower() in {'false', 'n'}:
         return False
@@ -19,9 +17,32 @@ def str_to_bool(value):
         return True
 
 # ====================================================================================================================================================================== #
+
+## Ansi colors
+class bcolors: 
+    RESET = '\033[0m'
+    BLACK = '\033[30m'     
+    RED = '\033[31m'     
+    GREEN = '\033[32m'      
+    YELLOW = '\033[33m'    
+    BLUE = '\033[34m'      
+    MAGENTA = '\033[35m'     
+    CYAN = '\033[36m'     
+    WHITE = '\033[37m'      
+    BOLDBLACK = '\033[1m\033[30m'      
+    BOLDRED = '\033[1m\033[31m'    
+    BOLDGREEN = '\033[1m\033[32m'      
+    BOLDYELLOW = '\033[1m\033[33m'      
+    BOLDBLUE = '\033[1m\033[34m'      
+    BOLDMAGENTA = '\033[1m\033[35m'      
+    BOLDCYAN = '\033[1m\033[36m'      
+    BOLDWHITE = '\033[1m\033[37m'
+
+# ====================================================================================================================================================================== #
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--algorithm", type=str, default="q_learning", help="vai (Value Iteration Algorithm) / q_learning")
 parser.add_argument('--use_pygame', type=str_to_bool, default=False, help='Utilizar el entorno simulado en imagen')
+parser.add_argument('--episodes', type=int, default=650, help='Numero de episodios a usar en los algoritmos')
 args = parser.parse_args()
 # ====================================================================================================================================================================== #
 
@@ -31,10 +52,10 @@ DOWN = 1  # v Increase X (row)
 RIGHT = 2 # > Increase Y (column)
 UP = 3    # ^ Decrease X (row)
 
-SIM_PERIOD_MS = 500.0
+SIM_PERIOD_MS = 10.0
 
 # Episodios
-EPISODES = 5000
+EPISODES = args.episodes
 
 def main (env):
     state = env.reset()
@@ -53,13 +74,12 @@ def main (env):
         for t in range(100):           
             
             action = env.action_space.sample()
-            print ('action: ', action)
             new_state, reward, done,_ = env.step(action)
             state = new_state
             rAll += reward
             state = new_state
             env.render()
-            print("new_state: "+str(new_state)+", reward: "+str(reward)+", done: "+str(done))
+            print(bcolors.BOLDGREEN + "new_state: " + bcolors.BOLDWHITE + str(new_state) + bcolors.BOLDGREEN + ", reward: " + bcolors.BOLDWHITE + str(reward) + bcolors.BOLDGREEN + ", done: " + bcolors.BOLDWHITE + str(done) + bcolors.BOLDGREEN + ", episode: " +  bcolors.BOLDWHITE +str (i))
             time.sleep(SIM_PERIOD_MS/1000.0)
 
             if done == True:
@@ -78,12 +98,11 @@ def q_learning (env):
     # 2. Parameters of Q-learning
     eta = .628
     gma = .9
-    epis = 5000
     rev_list = [] # rewards per episode calculate
 
     # 3. Q-learning Algorithm
     print("Computing Q-Table...")
-    for i in range(epis):
+    for i in range(EPISODES):
         # Reset environment
         s = env.reset()
         rAll = 0
@@ -97,13 +116,12 @@ def q_learning (env):
             a = np.argmax(Q[s,:] + np.random.randn(1,env.action_space.n)*(1./(i+1)))
             #Get new state & reward from environment
             #print("a",a)
-            print ("action: ", a)
             s1,r,d,_ = env.step(a)
             #Update Q-Table with new knowledge
             Q[s,a] = Q[s,a] + eta*(r + gma*np.max(Q[s1,:]) - Q[s,a])
             rAll += r
             s = s1
-            print("new_state: "+str(s1)+", reward: "+str(r)+", done: "+str(d))
+            print( bcolors.BOLDGREEN + "new_state: " + bcolors.BOLDWHITE + str(s1) + ", " + bcolors.BOLDGREEN + "reward: " + bcolors.BOLDWHITE + "{:.2f}".format ( r ) + ", " + bcolors.BOLDGREEN + "done: " + bcolors.BOLDWHITE + str(d) + ", " + bcolors.BOLDGREEN + "episode: " + bcolors.BOLDWHITE + str (i) )
             time.sleep(SIM_PERIOD_MS/1000.0)
             
             if d == True:
@@ -111,12 +129,12 @@ def q_learning (env):
             
         rev_list.append(rAll)
         env.render()
-    print("Reward Sum on all episodes " + str(sum(rev_list)/epis))
+    print("Reward Sum on all episodes " + str(sum(rev_list)/EPISODES))
     print("Final Values Q-Table")
     print(Q)
 
+    print ("===============================")
     print("Press any key to run solution...")
-
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
@@ -138,29 +156,31 @@ def q_learning (env):
         #Update Q-Table with new knowledge
         Q[s,a] = Q[s,a] + eta*(r + gma*np.max(Q[s1,:]) - Q[s,a])
         s = s1
-        time.sleep(SIM_PERIOD_MS/1000.0)
+        time.sleep( 0.5 )
     # Code will stop at d == True, and render one state before it
+
+# ====================================================================================================================================================================== #
 
 def value_iteration_algorithm (env):
     s = env.reset()
     # Value iteration algorithm
     NUM_ACTIONS = env.action_space.n
     NUM_STATES = env.observation_space.n
-    V = np.zeros([NUM_STATES]) # The Value for each state
-    Pi = np.zeros([NUM_STATES], dtype=int)  # Our policy with we keep updating to get the optimal policy
-    gamma = 0.9 # discount factor
+    V = np.zeros([NUM_STATES]) # Valor para cada estado
+    Pi = np.zeros([NUM_STATES], dtype=int)  # Politica que seguimos actualizando para conseguir la mejor política 
+    gamma = 0.9 # Factor de descuento
     significant_improvement = 0.01
 
     def best_action_value(s):
-        # finds the highest value action (max_a) in state s
+        # Encuentra la accion de mayor valor (max_a) en el estado 's'
         best_a = None
-        best_value = float('-inf')
+        best_value = -9999.0
 
-        # loop through all possible actions to find the best current action
+        # Recorrer todas las acciones posibles para encontrar la mejor accion actual
         for a in range (0, NUM_ACTIONS):
             env.env.s = s
-            s_new, rew, done, info = env.step(a) #take the action
-            v = rew + gamma * V[s_new]
+            state_new, reward, done, _ = env.step(a) 
+            v = reward + gamma * V[state_new]
             if v > best_value:
                 best_value = v
                 best_a = a
@@ -168,37 +188,48 @@ def value_iteration_algorithm (env):
 
     iteration = 0
     while True:
-        # biggest_change is referred to by the mathematical symbol delta in equations
+        # biggest_change se denomina con el símbolo matemático delta en las ecuaciones
         biggest_change = 0
         for s in range (0, NUM_STATES):
             old_v = V[s]
-            action = best_action_value(s) #choosing an action with the highest future reward
-            env.env.s = s # goto the state
-            s_new, rew, done, info = env.step(action) #take the action
-            V[s] = rew + gamma * V[s_new] #Update Value for the state using Bellman equation
+            action = best_action_value(s) # elegir una accion con la mayor recompensa futura
+            env.env.s = s 
+            state_new, reward, done, _ = env.step(action) # Step
+            V[s] = reward + gamma * V[state_new] # Actualizar el valor del estado mediante la ecuación de Bellman
             Pi[s] = action
             biggest_change = max(biggest_change, np.abs(old_v - V[s]))
             env.render()
-            print("new_state: "+str(s_new)+", reward: "+str(rew)+", done: "+str(done))
+            print(bcolors.BOLDGREEN + "new_state: " + bcolors.BOLDWHITE + str(state_new) + ", " + bcolors.BOLDGREEN + "reward: " + bcolors.BOLDWHITE + "{:.2f}".format ( reward ) + ", " + bcolors.BOLDGREEN + "done: " + bcolors.BOLDWHITE + str(done))
         iteration += 1
         if biggest_change < significant_improvement:
             print (iteration,' iterations done')
             break
     
-    # Let's see how the algorithm solves the taxi game
+    print ("===============================")
+    print("Press any key to run solution...")
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    # Mapa resuelto
     rew_tot=0
     obs= env.reset()
     env.render()
     done=False
     while done != True: 
         action = Pi[obs]
-        obs, rew, done, info = env.step(action) #take step using selected action
-        rew_tot = rew_tot + rew
+        obs, reward, done, info = env.step(action) # Step
+        rew_tot = rew_tot + reward
         env.render()
-    #Print the reward of these actions
+        time.sleep( 0.5 )
+    # Print the reward
     print("Reward: %r" % rew_tot)
 
-# =========================================================================================================== #
+# ====================================================================================================================================================================== #
 
 if __name__ == '__main__':
     if (args.use_pygame):
@@ -210,3 +241,4 @@ if __name__ == '__main__':
         value_iteration_algorithm ( env )
     else:
         q_learning (env)
+ 
