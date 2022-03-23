@@ -13,6 +13,10 @@ LEFT = 0  # < Decrease Y (column)
 DOWN = 1  # v Increase X (row)
 RIGHT = 2 # > Increase Y (column)
 UP = 3    # ^ Decrease X (row)
+DOWNRIGHT = 4 # Increase X (row) - Increase Y (column)
+DOWNLEFT = 5 # Increase X (row) - Decrease Y (column)
+UPRIGHT = 6 # Decrease X (row) - Increase Y (column)
+UPLEFT = 7 # Decrease X (row) - Decrease Y (column)
 
 ## Ansi colors
 class bcolors: 
@@ -50,17 +54,49 @@ class CsvEnv(discrete.DiscreteEnv):
     def __init__(self):
         # Remember: X points down, Y points right, thus Z points outwards.
         # hard-coded vars (begin)
-        inFileStr = 'map1.csv'
+
+        map_number = -1 # Inicializacion
+
+        while ( True ):
+            map_number = input ("Elige un mapa de 1 a 4\n")
+            if ( int(map_number) > 0 and int(map_number) < 4 ):
+                break
+        inFileStr = 'map' + map_number + '.csv'
         initX = 1
         initY = 1
         goalX = 12
         goalY = 14
         # hard-coded vars (end)
         self.inFile = np.genfromtxt(inFileStr, delimiter=',')
+
+        # Bucles para elegir la coordenada de inicio y final
+        while ( True ):
+            initX = int (input ("Elige la coordenada X de inicio\n"))
+            initY = int (input ("Elige la coordenada Y de inicio\n"))
+            try:
+                if ( self.inFile[initX][initX] == 1 ):
+                    print ("Has elegido una coordenada que es un obstaculo, vuelve a elegir")
+                else:
+                    break
+            except:
+                print ("Has elegido una coordenada que no pertenece al mapa, vuelve a elegir")
+            
+        
+        while ( True ):
+            goalX = int (input ("Elige la coordenada X para la meta\n"))
+            goalY = int (input ("Elige la coordenada Y para la meta\n"))
+            try:
+                if ( self.inFile[goalX][goalY] == 1 ):
+                    print ("Has elegido una coordenada que es un obstaculo, vuelve a elegir")
+                else:
+                    break
+            except:
+                print ("Has elegido una coordenada que no pertenece al mapa, vuelve a elegir")
         self.inFile[goalX][goalY] = 3 # The goal (3) is fixed, so we paint it, but the robot (2) moves, so done at render().
+
         self.nrow, self.ncol = nrow, ncol = self.inFile.shape
         nS = nrow * ncol # nS: number of states
-        nA = 4 # nA: number of actions
+        nA = 8 # nA: number of actions
         P = {s : {a : [] for a in range(nA)} for s in range(nS)} # transitions (*), filled in at the for loop below.
         isd = np.zeros((nrow, ncol)) # initial state distribution (**)
         isd[initX][initY] = 1
@@ -78,6 +114,18 @@ class CsvEnv(discrete.DiscreteEnv):
                 col = min(col+1,ncol-1)
             elif a == UP:
                 row = max(row-1,0)
+            elif a == DOWNRIGHT:
+                row = min(row+1,nrow-1)
+                col = min(col+1,ncol-1)
+            elif a == DOWNLEFT:
+                row = min(row+1,nrow-1)
+                col = max(col-1,0)
+            elif a == UPRIGHT:
+                row = max(row-1,0)
+                col = min(col+1,ncol-1)
+            elif a == UPLEFT:
+                row = max(row-1,0)
+                col = max(col-1,0)
             return (row, col)
 
         def euclidean_distance (x1, y1, x2, y2):
@@ -86,7 +134,7 @@ class CsvEnv(discrete.DiscreteEnv):
         for row in range(nrow): # Fill in P[s][a] transitions and rewards
             for col in range(ncol):
                 s = to_s(row, col)
-                for a in range(4):
+                for a in range(8):
                     li = P[s][a] # In Python this is not a deep copy, therefore we are appending to actual P[s][a] !!
                     tag = self.inFile[row][col]
                     
@@ -116,6 +164,7 @@ class CsvEnv(discrete.DiscreteEnv):
         viewer = np.copy(self.inFile) # Force a deep copy for rendering.
         viewer[row, col] = 2
 
+        print ("===============================")
         for row in viewer:
             for cell in row:
                 if cell == 1:

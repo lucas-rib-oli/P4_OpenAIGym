@@ -7,9 +7,23 @@ import numpy as np
 import time
 
 import sys, tty, termios
+import argparse
 
 # https://www.kaggle.com/code/charel/learn-by-example-reinforcement-learning-with-gym/notebook
 # https://programmerclick.com/article/1942403954/
+
+def str_to_bool(value):
+    if value.lower() in {'false', 'n'}:
+        return False
+    elif value.lower() in {'true', 'y'}:
+        return True
+
+# ====================================================================================================================================================================== #
+parser = argparse.ArgumentParser()
+parser.add_argument("-a", "--algorithm", type=str, default="q_learning", help="vai (Value Iteration Algorithm) / q_learning")
+parser.add_argument('--use_pygame', type=str_to_bool, default=False, help='Utilizar el entorno simulado en imagen')
+args = parser.parse_args()
+# ====================================================================================================================================================================== #
 
 # X points down (rows)(v), Y points right (columns)(>), Z would point outwards.
 LEFT = 0  # < Decrease Y (column)
@@ -128,7 +142,6 @@ def q_learning (env):
     # Code will stop at d == True, and render one state before it
 
 def value_iteration_algorithm (env):
-    
     s = env.reset()
     # Value iteration algorithm
     NUM_ACTIONS = env.action_space.n
@@ -188,6 +201,12 @@ def value_iteration_algorithm (env):
 # =========================================================================================================== #
 
 if __name__ == '__main__':
-    env = gym.make('csv-v0')
-    # value_iteration_algorithm ( env )
-    # q_learning (env)
+    if (args.use_pygame):
+        env = gym.make('csv-pygame-v0')
+    else:
+        env = gym.make('csv-v0')
+
+    if ( args.algorithm == "vai" ):
+        value_iteration_algorithm ( env )
+    else:
+        q_learning (env)
